@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#0A1329" />
+  <title>AapdaLink | North East Disaster Response & Community Safety</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              950: '#070D1B',
+              900: '#0A1329',
+              800: '#101F42',
+            },
+            emergency: {
+              red: '#DC2626',
+              orange: '#EA580C',
+              amber: '#D97706',
+              green: '#16A34A',
+            }
+          },
+          boxShadow: {
+            emergency: '0 4px 14px 0 rgba(220, 38, 38, 0.39)',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- React 18 & ReactDOM 18 UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- HTM for direct browser JSX template rendering without build tools -->
+  <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .leaflet-container { font-family: inherit; z-index: 10; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans antialiased min-h-screen">
+  <div id="root">
+    <div style="padding: 30px; text-align: center; color: #0f172a; font-family: sans-serif;">
+      <h2 style="font-size: 20px; font-weight: 800;">AapdaLink | North East Disaster Safety Hub</h2>
+      <p style="font-size: 13px; color: #64748b; margin-top: 6px;">Initializing emergency coordination platform...</p>
+    </div>
+  </div>
+
+  <script>
+    // Bind HTM with React.createElement
+    const html = htm.bind(React.createElement);
+    const { useState, useEffect, useRef } = React;
+
+    // --- REGIONAL LANGUAGES & TRANSLATIONS ---
+    const LANGUAGES = [
+      { code: 'en', native: 'English', voiceLang: 'en-IN' },
+      { code: 'as', native: 'অসমীয়া (Assamese)', voiceLang: 'bn-IN' },
+      { code: 'bn', native: 'বাংলা (Bengali)', voiceLang: 'bn-IN' },
+      { code: 'hi', native: 'हिन्दी (Hindi)', voiceLang: 'hi-IN' },
+      { code: 'kha', native: 'Ka Ktien Khasi', voiceLang: 'en-IN' },
+      { code: 'nag', native: 'Nagamese', voiceLang: 'en-IN' }
+    ];
+
+    const TRANSLATIONS = {
+      en: {
+        appTitle: 'AapdaLink',
+        appSubtitle: 'Disaster Response & Safety Hub',
+        neRegion: 'NE India',
+        dashboard: 'Dashboard',
+        map: 'Disaster Map',
+        safeplaces: 'Safe Shelters',
+        safety: 'Safety Guides',
+        admin: 'Admin',
+        requestHelp: 'REQUEST HELP',
+        helplines: '112 / Helplines',
+        lowDataOn: 'Low-Data: ON',
+        lowDataOff: 'Low-Data',
+        monsoonWatch: 'Monsoon Flood & Landslide Watch Active',
+        demoData: 'Demo Simulation',
+        heroTitlePrefix: 'North East India',
+        heroTitleHighlight: 'Disaster Safety',
+        heroTitleSuffix: '& Community Aid',
+        heroDesc: 'Essential emergency alerts, Brahmaputra/Barak river flood levels, hill highway landslides, and rapid community rescue coordination.',
+        requestRescueBtn: '🚨 REQUEST RESCUE (SOS)',
+        reportHazardBtn: '+ Report Road Block / Flood',
+        openMapBtn: '🗺️ Open Disaster Map',
+        officialAlertsTitle: 'Official Alerts & Advisories',
+        activeBulletins: 'Active Bulletins',
+        recentReportsTitle: 'Recent Citizen Incident Reports',
+        confirmHazardBtn: 'Confirm This',
+        verifiedDEOC: 'Verified by Authorities',
+        unverifiedReport: 'Unverified (Pending Review)',
+        safeSheltersTitle: 'Verified Safe Shelters & Hospitals',
+        callDesk: 'Call Desk',
+        routeDirections: 'Directions',
+        goBagTitle: 'Emergency Go-Bag Survival Kit Tracker',
+        voiceAssist: 'Voice Assist',
+        listenAlerts: 'Listen Alerts',
+        stopAudio: 'Stop Sound',
+        audioAnnounceIntro: 'AapdaLink North East Emergency Audio Broadcast. Red Warning active for Brahmaputra river basin. Water levels above danger mark. To request immediate rescue, call 112 directly or submit an emergency ticket.',
+        all: 'All',
+        flood: 'Floods',
+        landslide: 'Landslides',
+        shelter: 'Shelters'
+      },
+      as: {
+        appTitle: 'আপদালিংক',
+        appSubtitle: 'উত্তৰ-পূব দুৰ্যোগ সাহায্য আৰু সুৰক্ষা কেন্দ্ৰ',
+        neRegion: 'উত্তৰ-পূব',
+        dashboard: 'মুখ্য পৃষ্ঠা',
+        map: 'দুৰ্যোগ মানচিত্ৰ',
+        safeplaces: 'সুৰক্ষিত আশ্ৰয় শিবিৰ',
+        safety: 'সুৰক্ষা নিৰ্দেশনা',
+        admin: 'প্ৰশাসন',
+        requestHelp: 'জৰুৰী সাহায্য অনুৰোধ',
+        helplines: '১১২ / হেল্পলাইন',
+        lowDataOn: 'কম-ডাটা: সক্ৰিয়',
+        lowDataOff: 'কম-ডাটা',
+        monsoonWatch: 'ব্ৰহ্মপুত্ৰ আৰু বৰাক উপত্যকাত বান সতৰ্কতা সক্ৰিয়',
+        demoData: 'নমুনা তথ্য',
+        heroTitlePrefix: 'উত্তৰ-পূব ভাৰত',
+        heroTitleHighlight: 'দুৰ্যোগ সুৰক্ষা',
+        heroTitleSuffix: 'আৰু সম্প্ৰদায় সাহায্য',
+        heroDesc: 'ব্ৰহ্মপুত্ৰ আৰু বৰাক নদীৰ জলপৃষ্ঠ বৃদ্ধি, পাহাৰীয়া ৰাষ্ট্ৰীয় ঘাইপথত ভূমিস্খলন, বানপানী আৰু জৰুৰী উদ্ধাৰ সাহায্যৰ বাবে তাৎক্ষণিক তথ্য।',
+        requestRescueBtn: '🚨 উদ্ধাৰ সাহায্য বিচাৰক (SOS)',
+        reportHazardBtn: '+ বিপদ বা পথ বন্ধৰ খবৰ দিয়ক',
+        openMapBtn: '🗺️ মানচিত্ৰ খোলক',
+        officialAlertsTitle: 'চৰকাৰী দুৰ্যোগ নিৰ্দেশনা আৰু সতৰ্কবাৰ্তা',
+        activeBulletins: 'সক্ৰিয় সতৰ্কবাৰ্তা',
+        recentReportsTitle: 'নাগৰিকসকলে প্ৰেৰণ কৰা ঘটনাৰ প্ৰতিবেদন',
+        confirmHazardBtn: 'এই বিপদ নিশ্চিত কৰক',
+        verifiedDEOC: 'প্ৰশাসনে নিশ্চিত কৰা',
+        unverifiedReport: 'অনিশ্চিত (পৰ্যালোচনাৰ অধীন)',
+        safeSheltersTitle: 'সুৰক্ষিত আশ্ৰয় শিবিৰ আৰু চিকিৎসালয়',
+        callDesk: 'ফোন কৰক',
+        routeDirections: 'দিশনিৰ্দেশনা',
+        goBagTitle: 'জৰুৰীকালীন গো-বেগ (Go-Bag) সামগ্ৰী তালিকা',
+        voiceAssist: 'শব্দ সহায়ক (Audio)',
+        listenAlerts: 'সতৰ্কবাৰ্তা শুনক',
+        stopAudio: 'শব্দ বন্ধ কৰক',
+        audioAnnounceIntro: 'আপদালিংক উত্তৰ-পূব জৰুৰীকালীন অডিঅ’ বাৰ্তা। ব্ৰহ্মপুত্ৰ নদীৰ জলপৃষ্ঠ বিপদসীমাৰ ওপৰত বৈ আছে। তাৎক্ষণিক উদ্ধাৰৰ বাবে পোনপটীয়াকৈ ১১২ নম্বৰত ফোন কৰক বা এছ.অ’.এছ বুটামত টিপক।',
+        all: 'সকলো',
+        flood: 'বানপানী',
+        landslide: 'ভূমিস্খলন',
+        shelter: 'শিবিৰ'
+      },
+      bn: {
+        appTitle: 'আপদালিঙ্ক',
+        appSubtitle: 'উত্তর-পূর্ব দুর্যোগ সাড়া ও সম্প্রদায় সুরক্ষা হাব',
+        neRegion: 'উত্তর-পূর্ব ভারত',
+        dashboard: 'ড্যাশবোর্ড',
+        map: 'দুর্যোগ মানচিত্র',
+        safeplaces: 'নিরাপদ আশ্রয় ও হাসপাতাল',
+        safety: 'সুরক্ষা নির্দেশিকা',
+        admin: 'প্রশাসন',
+        requestHelp: 'জরুরি সাহায্য চান',
+        helplines: '১১২ / হেল্পলাইন',
+        lowDataOn: 'লো-ডেটা: অন',
+        lowDataOff: 'লো-ডেটা',
+        monsoonWatch: 'বরাক ও ব্রহ্মপুত্র উপত্যকায় বন্যা ও ভূমিধস সতর্কতা',
+        demoData: 'নমুনা তথ্য',
+        heroTitlePrefix: 'উত্তর-পূর্ব ভারত',
+        heroTitleHighlight: 'দুর্যোগ সুরক্ষা',
+        heroTitleSuffix: 'ও উদ্ধার সহায়তা',
+        heroDesc: 'বরাক নদী ও শিলচরের বন্যা পরিস্থিতি, মেঘালয় এনএইচ-০৬ এবং নাগাল্যান্ড এনএইচ-২৯ হাইওয়েতে ভূমিধসের তাৎক্ষণিক তথ্য এবং উদ্ধার সহায়তা।',
+        requestRescueBtn: '🚨 জরুরি উদ্ধার সাহায্য চান (SOS)',
+        reportHazardBtn: '+ সড়ক অবরোধ বা বন্যার খবর দিন',
+        openMapBtn: '🗺️ দুর্যোগ মানচিত্র দেখুন',
+        officialAlertsTitle: 'সরকারি দুর্যোগ বুলেটিন ও সতর্কতা',
+        activeBulletins: 'সক্রিয় সতর্কতা',
+        recentReportsTitle: 'নাগরিকদের পাঠানো ক্ষয়ক্ষতির খবর',
+        confirmHazardBtn: 'এই বিপদ নিশ্চিত করুন',
+        verifiedDEOC: 'প্রশাসন দ্বারা যাচাইকৃত',
+        unverifiedReport: 'অযাচাইকৃত (পর্যালোচনা চলছে)',
+        safeSheltersTitle: 'যাচাইকৃত নিরাপদ আশ্রয় শিবির ও হাসপাতাল',
+        callDesk: 'ফোন করুন',
+        routeDirections: 'পথনির্দেশ',
+        goBagTitle: 'জরুরি গো-ব্যাগ (Go-Bag) চেকলিস্ট',
+        voiceAssist: 'ভয়েস সহকারী (Audio)',
+        listenAlerts: 'সতর্কবার্তা শুনুন',
+        stopAudio: 'ভয়েস বন্ধ করুন',
+        audioAnnounceIntro: 'আপদালিঙ্ক উত্তর-পূর্ব জরুরি অডিও বার্তা। বরাক এবং ব্রহ্মপুত্র নদে জল বিপদসীমার উপর দিয়ে প্রবাহিত হচ্ছে। তাৎক্ষণিক জীবন বাঁচানোর জন্য সরাসরি ১১২ নম্বরে ফোন করুন।',
+        all: 'সবগুলি',
+        flood: 'বন্যা',
+        landslide: 'ভূমিধস',
+        shelter: 'আশ্রয় শিবির'
+      },
+      hi: {
+        appTitle: 'आपदालिंक',
+        appSubtitle: 'पूर्वोत्तर भारत आपदा राहत एवं सुरक्षा केंद्र',
+        neRegion: 'पूर्वोत्तर भारत',
+        dashboard: 'डैशबोर्ड',
+        map: 'आपदा नक्शा',
+        safeplaces: 'सुरक्षित राहत शिविर',
+        safety: 'सुरक्षा नियम',
+        admin: 'प्रशासन',
+        requestHelp: 'आपातकालीन सहायता मांगें',
+        helplines: '112 / हेल्पलाइन',
+        lowDataOn: 'कम-डेटा: चालू',
+        lowDataOff: 'कम-डेटा',
+        monsoonWatch: 'पूर्वोत्तर मानसून बाढ़ एवं भूस्खलन चेतावनी सक्रिय',
+        demoData: 'डेमो डेटा',
+        heroTitlePrefix: 'पूर्वोत्तर भारत',
+        heroTitleHighlight: 'आपदा सुरक्षा',
+        heroTitleSuffix: 'एवं सामुदायिक सहायता',
+        heroDesc: 'ब्रह्मपुत्र और बराक नदियों में बाढ़, असम-मेघालय राजमार्गों पर भूस्खलन और तत्काल राहत बचाव के लिए सीधी सहायता।',
+        requestRescueBtn: '🚨 तत्काल बचाव सहायता मांगें (SOS)',
+        reportHazardBtn: '+ सड़क जाम या जलभराव की रिपोर्ट करें',
+        openMapBtn: '🗺️ आपदा नक्शा देखें',
+        officialAlertsTitle: 'आधिकारिक आपदा चेतावनियाँ एवं निर्देश',
+        activeBulletins: 'सक्रिय चेतावनियाँ',
+        recentReportsTitle: 'नागरिकों द्वारा भेजी गई आपदा रिपोर्ट',
+        confirmHazardBtn: 'इस खतरे की पुष्टि करें',
+        verifiedDEOC: 'प्रशासन द्वारा सत्यापित',
+        unverifiedReport: 'असत्यापित (समीक्षा जारी)',
+        safeSheltersTitle: 'सुरक्षित राहत शिविर एवं अस्पताल',
+        callDesk: 'कॉल करें',
+        routeDirections: 'रास्ता देखें',
+        goBagTitle: 'आपातकालीन गो-बैग (Go-Bag) किट ट्रैकर',
+        voiceAssist: 'ध्वनि सहायक (Audio)',
+        listenAlerts: 'अलर्ट सुनें',
+        stopAudio: 'आवाज रोकें',
+        audioAnnounceIntro: 'आपदालिंक पूर्वोत्तर भारत आपातकालीन ऑडियो संदेश। ब्रह्मपुत्र और बराक नदी में जलस्तर खतरे के निशान से ऊपर है। जीवन रक्षा के लिए तत्काल 112 या 1070 पर कॉल करें।',
+        all: 'सभी',
+        flood: 'बाढ़',
+        landslide: 'भूस्खलन',
+        shelter: 'राहत शिविर'
+      },
+      kha: {
+        appTitle: 'AapdaLink',
+        appSubtitle: 'Ka Kynhun Jingiada Na Ka Jingjia Ba Lanwir',
+        neRegion: 'NE India',
+        dashboard: 'Khyndew',
+        map: 'Map Jingjia',
+        safeplaces: 'Ki Shlem Ba Shngain',
+        safety: 'Ki Aiñ Jingiada',
+        admin: 'Admin',
+        requestHelp: 'PAN JINGYARAP',
+        helplines: '112 / Helplines',
+        lowDataOn: 'Low-Data: ON',
+        lowDataOff: 'Low-Data',
+        monsoonWatch: 'Ka Maham Na Ka Slam Um & Twaid Khyndew',
+        demoData: 'Demo',
+        heroTitlePrefix: 'Shatei Lam Mihngi',
+        heroTitleHighlight: 'Jingiada Na Jingjia',
+        heroTitleSuffix: '& Jingkyrshan',
+        heroDesc: 'Ki khubor ba kongsan halor ka jingkit um, twaid khyndew ha NH-06 Sonapur, bad jingiarap wut-wut.',
+        requestRescueBtn: '🚨 PAN JINGPYNIM (SOS)',
+        reportHazardBtn: '+ Ai Khubor Bha Ka Wah / Surok',
+        openMapBtn: '🗺️ Plie Ka Map',
+        officialAlertsTitle: 'Ki Maham ba Donkam Na Ka Sorkar',
+        activeBulletins: 'Ki Maham Ba Treikham',
+        recentReportsTitle: 'Ki Khubor ba wan na ki briew',
+        confirmHazardBtn: 'Pynskhem Ya Kane',
+        verifiedDEOC: 'La Pynskhem da ki bor sorkar',
+        unverifiedReport: 'Dang Batai (Peit bniah)',
+        safeSheltersTitle: 'Ki Shlem ba Shngain & Hospital',
+        callDesk: 'Phone',
+        routeDirections: 'Surok',
+        goBagTitle: 'Ka Pla Jingiarap Wut-wut (Go-Bag)',
+        voiceAssist: 'Sngap ya ka Sur (Audio)',
+        listenAlerts: 'Sngap Maham',
+        stopAudio: 'Sangeh Sur',
+        audioAnnounceIntro: 'Khubor na AapdaLink. Ka don ka jingmaham halor ka jingtwa khyndew ha NH-06 Sonapur Tunnel bad ka jingkiew um. Phone ha 112 lane 1070 mar-mar.',
+        all: 'Baroh',
+        flood: 'Um Saw',
+        landslide: 'Twaid Khyndew',
+        shelter: 'Shlem'
+      },
+      nag: {
+        appTitle: 'AapdaLink',
+        appSubtitle: 'North East Emergency Hub',
+        neRegion: 'NE India',
+        dashboard: 'Home',
+        map: 'Map',
+        safeplaces: 'Safe Shelters',
+        safety: 'Safety Guides',
+        admin: 'Admin',
+        requestHelp: 'REQUEST HELP',
+        helplines: '112 Helpline',
+        lowDataOn: 'Low-Data: ON',
+        lowDataOff: 'Low-Data',
+        monsoonWatch: 'Floods & Landslides Alert Active',
+        demoData: 'Demo Data',
+        heroTitlePrefix: 'North East India',
+        heroTitleHighlight: 'Disaster Safety',
+        heroTitleSuffix: '& Rescue Help',
+        heroDesc: 'Emergency alerts for NH-29 Kohima-Dimapur sinking road, landslides, and river floods.',
+        requestRescueBtn: '🚨 REQUEST RESCUE (SOS)',
+        reportHazardBtn: '+ Report Road Block / Slide',
+        openMapBtn: '🗺️ Open Map',
+        officialAlertsTitle: 'Government Warnings & Alerts',
+        activeBulletins: 'Active Alerts',
+        recentReportsTitle: 'Reports from Local People',
+        confirmHazardBtn: 'Confirm This',
+        verifiedDEOC: 'Verified by Police/DEOC',
+        unverifiedReport: 'Pending Verification',
+        safeSheltersTitle: 'Safe Shelters & Hospitals',
+        callDesk: 'Call Now',
+        routeDirections: 'Route',
+        goBagTitle: 'Emergency Go-Bag Checklist',
+        voiceAssist: 'Voice Assist (Audio)',
+        listenAlerts: 'Listen Alerts',
+        stopAudio: 'Stop Sound',
+        audioAnnounceIntro: 'AapdaLink Emergency Voice Message. Heavy rain causing sinking zones near Dzudza bridge on NH-29 and flood surges. Call 112 right now or press the red SOS button.',
+        all: 'All',
+        flood: 'Floods',
+        landslide: 'Landslides',
+        shelter: 'Shelters'
+      }
+    };
+
+    // --- WEB SPEECH SYNTHESIS ENGINE (AUDIO READER) ---
+    function speakText(text, langCode = 'en', onEndCallback) {
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        alert('Voice Audio is not supported on this device/browser.');
+        return null;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.92;
+      utterance.pitch = 1.0;
+
+      const voiceLangMap = {
+        hi: 'hi-IN',
+        bn: 'bn-IN',
+        as: 'bn-IN',
+        en: 'en-IN',
+        kha: 'en-IN',
+        nag: 'en-IN'
+      };
+      utterance.lang = voiceLangMap[langCode] || 'en-IN';
+
+      if (onEndCallback) {
+        utterance.onend = onEndCallback;
+        utterance.onerror = onEndCallback;
+      }
+      window.speechSynthesis.speak(utterance);
+      return utterance;
+    }
+
+    function stopSpeech() {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    // --- SEED EMERGENCY DATA ---
+    const EMERGENCY_NUMBERS = [
+      { label: 'National All-in-One Emergency', number: '112', desc: 'Police, Fire, Medical 24/7', priority: true },
+      { label: 'State Disaster Control (SEOC)', number: '1070', desc: 'State Operations Centre', priority: true },
+      { label: 'District Emergency (DEOC)', number: '1077', desc: 'District Disaster Centre', priority: true },
+      { label: 'NDRF 1st Bn (Patgaon, Guwahati)', number: '0361-2849005', desc: 'National Disaster Response Force HQ' },
+      { label: 'NDRF 12th Bn (Doimukh, Arunachal)', number: '0360-2244246', desc: 'Arunachal & Upper Assam Unit' },
+      { label: 'Emergency Ambulance', number: '108', desc: 'Medical First Response' }
+    ];
+
+    const NE_STATES = [
+      { name: 'Assam', districts: ['Kamrup Metro', 'Cachar', 'Morigaon', 'Dhemaji', 'Dhubri', 'Barpeta', 'Dibrugarh'] },
+      { name: 'Meghalaya', districts: ['East Khasi Hills', 'Ri-Bhoi', 'East Jaintia Hills', 'West Garo Hills'] },
+      { name: 'Nagaland', districts: ['Kohima', 'Dimapur', 'Mokokchung', 'Wokha'] },
+      { name: 'Arunachal Pradesh', districts: ['Papum Pare', 'West Kameng', 'Tawang', 'Dibang Valley'] },
+      { name: 'Sikkim', districts: ['Gangtok', 'Pakyong', 'Namchi', 'Mangan'] },
+      { name: 'Manipur', districts: ['Imphal West', 'Imphal East', 'Senapati', 'Churachandpur'] },
+      { name: 'Mizoram', districts: ['Aizawl', 'Lunglei', 'Champhai'] },
+      { name: 'Tripura', districts: ['West Tripura', 'South Tripura', 'Gomati'] }
+    ];
+
+    const INITIAL_ALERTS = [
+      {
+        id: 'alt-1',
+        title: 'RED WARNING: Brahmaputra River 0.68m Above Danger Level',
+        description: 'Severe flood wave moving downstream. Lowlands inundated in Guwahati, Morigaon, Dhubri. Embankment vigil activated.',
+        severity: 'critical_red',
+        source_agency: 'ASDMA & Central Water Commission',
+        affected_districts: ['Kamrup Metro', 'Morigaon', 'Dhubri'],
+        is_active: true,
+        action_instructions: 'Move livestock and valuables to high-ground camps. Dial 1070 for SDRF boat evacuation.',
+        is_demo: true
+      },
+      {
+        id: 'alt-2',
+        title: 'ORANGE ALERT: Active Landslide & Debris Flow along NH-06',
+        description: 'Torrential downpour in Jaintia hills. Heavy mudslide blocking Sonapur tunnel, cutting off Meghalaya-Barak Valley connectivity.',
+        severity: 'warning_orange',
+        source_agency: 'SDMA Meghalaya & District Police',
+        affected_districts: ['East Jaintia Hills', 'Cachar'],
+        is_active: true,
+        action_instructions: 'Heavy vehicles halted at Khliehriat toll. Avoid night hill travel.',
+        is_demo: true
+      }
+    ];
+
+    const INITIAL_HAZARDS = [
+      {
+        id: 'haz-1',
+        report_code: 'HZ-2026-9041',
+        hazard_type: 'flood',
+        title: 'Embankment seepage & flood surge near Bethukandi',
+        description: 'Barak river backflow entering residential lanes in Public School Road. Water depth 3.5 feet.',
+        state: 'Assam',
+        district: 'Cachar',
+        location_name: 'Bethukandi Sluice Gate, Silchar',
+        latitude: 24.8170,
+        longitude: 92.8005,
+        severity: 'critical',
+        status: 'verified',
+        confirmations_count: 24,
+        image_url: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=600&q=80',
+        is_demo: true
+      },
+      {
+        id: 'haz-2',
+        report_code: 'HZ-2026-9042',
+        hazard_type: 'landslide',
+        title: 'Major Mudslide blocking NH-06 near Sonapur Tunnel',
+        description: 'Large boulders and red mud covering 40m of highway. Both lanes impassable.',
+        state: 'Meghalaya',
+        district: 'East Jaintia Hills',
+        location_name: 'NH-06 Km 141, Sonapur Tunnel',
+        latitude: 25.1325,
+        longitude: 92.3685,
+        severity: 'critical',
+        status: 'verified',
+        confirmations_count: 38,
+        image_url: 'https://images.unsplash.com/photo-1579294800821-69fc81c15715?auto=format&fit=crop&w=600&q=80',
+        is_demo: true
+      },
+      {
+        id: 'haz-3',
+        report_code: 'HZ-2026-9043',
+        hazard_type: 'waterlogging',
+        title: 'Waist-deep Flash Waterlogging on Zoo Road Tiniali',
+        description: 'Bharalu canal overflow. Multiple vehicles submerged near Commerce College.',
+        state: 'Assam',
+        district: 'Kamrup Metro',
+        location_name: 'RG Baruah Road, Guwahati',
+        latitude: 26.1738,
+        longitude: 91.7820,
+        severity: 'high',
+        status: 'verified',
+        confirmations_count: 19,
+        image_url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80',
+        is_demo: true
+      },
+      {
+        id: 'haz-4',
+        report_code: 'HZ-2026-9044',
+        hazard_type: 'road_block',
+        title: 'Jiadhali River eroded eastern approach of timber bridge',
+        description: 'Rural connectivity cut off for tractors and light vehicles.',
+        state: 'Assam',
+        district: 'Dhemaji',
+        location_name: 'Batgharia PWD Link, Dhemaji',
+        latitude: 27.4812,
+        longitude: 94.5780,
+        severity: 'high',
+        status: 'unverified',
+        confirmations_count: 6,
+        is_demo: true
+      }
+    ];
+
+    const INITIAL_SAFE_PLACES = [
+      {
+        id: 'safe-1',
+        name: 'Gauhati Commerce College Relief Camp',
+        place_type: 'relief_camp',
+        state: 'Assam',
+        district: 'Kamrup Metro',
+        address: 'RG Baruah Road, Chandmari, Guwahati',
+        latitude: 26.1852,
+        longitude: 91.7770,
+        contact_phone: '+91 361 245 8821',
+        total_capacity: 450,
+        current_occupancy: 180,
+        operational_status: 'operational',
+        amenities: { drinking_water: true, medical_aid: true, generator: true, rations: true },
+        is_demo: true
+      },
+      {
+        id: 'safe-2',
+        name: 'Silchar District Civil Hospital (SMCH Satellite)',
+        place_type: 'hospital',
+        state: 'Assam',
+        district: 'Cachar',
+        address: 'Hospital Road, Silchar, Assam 788001',
+        latitude: 24.8290,
+        longitude: 92.7980,
+        contact_phone: '+91 3842 233 111',
+        total_capacity: 280,
+        current_occupancy: 215,
+        operational_status: 'near_full',
+        amenities: { drinking_water: true, medical_aid: true, generator: true, rations: true },
+        is_demo: true
+      },
+      {
+        id: 'safe-3',
+        name: 'Khliehriat Community Evacuation Shelter',
+        place_type: 'evacuation_shelter',
+        state: 'Meghalaya',
+        district: 'East Jaintia Hills',
+        address: 'DC Complex Grounds, Khliehriat',
+        latitude: 25.3520,
+        longitude: 92.3680,
+        contact_phone: '+91 3655 222 305',
+        total_capacity: 320,
+        current_occupancy: 75,
+        operational_status: 'operational',
+        amenities: { drinking_water: true, medical_aid: true, generator: true, rations: false },
+        is_demo: true
+      }
+    ];
+
+    const INITIAL_REQUESTS = [
+      {
+        id: 'req-1',
+        ticket_id: 'SOS-2026-7104',
+        category: 'rescue',
+        urgency: 'immediate_rescue',
+        description: 'Water level touched 1st floor balcony. 6 family members stranded including an 84-year-old grandmother and a 2-month baby. No power.',
+        state: 'Assam',
+        district: 'Cachar',
+        location_details: 'House 24, Lane 7, Near Rongpur Shani Mandir, Silchar',
+        contact_name: 'Ananya Bhattacharjee',
+        primary_contact: '+91 94352 11200',
+        people_count: 6,
+        status: 'dispatched',
+        assigned_responder: 'SDRF Boat Unit #4',
+        is_demo: true
+      }
+    ];
+
+    const GO_BAG_ITEMS = [
+      { id: 'gb-1', text: 'Important identity cards & land deeds in waterproof sealed pouch' },
+      { id: 'gb-2', text: 'Cash in small notes (ATMs & mobile UPI black out in flood storms)' },
+      { id: 'gb-3', text: 'High-power LED flashlight with extra batteries' },
+      { id: 'gb-4', text: 'Emergency whistle (essential to signal rescue boats in rain)' },
+      { id: 'gb-5', text: 'Water purification chlorine / halogen tablets (1 tablet = 20L)' },
+      { id: 'gb-6', text: 'Charged 10,000mAh+ power bank with charging cables' },
+      { id: 'gb-7', text: '3-day essential prescription medicines & ORS packets' },
+      { id: 'gb-8', text: 'Dry high-energy rations: chira (flattened rice), gur (jaggery), nuts' }
+    ];
+
+    // --- DEDICATED, ROCK-SOLID LEAFLET MAP VIEW COMPONENT ---
+    function MapView({ hazards, safePlaces, mapFilter, lowBandwidth, onSelectMarker }) {
+      const containerRef = useRef(null);
+      const leafletMapRef = useRef(null);
+      const markersLayerRef = useRef(null);
+      const [activeItem, setActiveItem] = useState(null);
+
+      // Clean Mount & Unmount Lifecycle
+      useEffect(() => {
+        const container = containerRef.current;
+        if (!container || lowBandwidth || typeof window === 'undefined' || !window.L) {
+          return;
+        }
+
+        const L = window.L;
+
+        // Clean up previous Leaflet instance if attached
+        if (leafletMapRef.current) {
+          try { leafletMapRef.current.remove(); } catch(e) {}
+          leafletMapRef.current = null;
+        }
+        if (container._leaflet_id) {
+          container._leaflet_id = null;
+        }
+
+        try {
+          const map = L.map(container, {
+            center: [26.2006, 92.9376],
+            zoom: 7,
+            zoomControl: true
+          });
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+
+          const markersLayer = L.layerGroup().addTo(map);
+          leafletMapRef.current = map;
+          markersLayerRef.current = markersLayer;
+
+          // Crucial: Invalidate size after DOM reflow so tiles load immediately
+          setTimeout(() => {
+            try {
+              if (leafletMapRef.current) {
+                leafletMapRef.current.invalidateSize();
+              }
+            } catch(e) {}
+          }, 200);
+
+        } catch (err) {
+          console.warn('Leaflet initialization warning:', err);
+        }
+
+        return () => {
+          if (leafletMapRef.current) {
+            try { leafletMapRef.current.remove(); } catch(e) {}
+            leafletMapRef.current = null;
+          }
+          markersLayerRef.current = null;
+        };
+      }, [lowBandwidth]);
+
+      // Update Markers on Data / Filter Change
+      useEffect(() => {
+        const map = leafletMapRef.current;
+        const layer = markersLayerRef.current;
+        if (!map || !layer || !window.L) return;
+
+        const L = window.L;
+        layer.clearLayers();
+
+        const allPins = [
+          ...hazards.map(h => ({ ...h, cat: 'hazard' })),
+          ...safePlaces.map(s => ({ ...s, cat: 'safe' }))
+        ].filter(item => {
+          if (mapFilter === 'all') return true;
+          if (mapFilter === 'flood') return item.hazard_type === 'flood' || item.hazard_type === 'waterlogging';
+          if (mapFilter === 'landslide') return item.hazard_type === 'landslide';
+          if (mapFilter === 'shelter') return item.cat === 'safe';
+          return true;
+        });
+
+        allPins.forEach(pin => {
+          const color = pin.cat === 'safe' ? '#16A34A' : pin.hazard_type === 'flood' ? '#2563EB' : '#DC2626';
+          const iconHtml = pin.cat === 'safe' ? '🏕️' : pin.hazard_type === 'flood' ? '🌊' : '⚠️';
+          const customIcon = L.divIcon({
+            html: `<div style="background-color: ${color}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2.5px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 16px; cursor: pointer;">${iconHtml}</div>`,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+          });
+
+          const marker = L.marker([pin.latitude, pin.longitude], { icon: customIcon });
+          marker.bindPopup(`
+            <div style="font-family: system-ui, sans-serif; padding: 10px; max-width: 250px;">
+              <strong style="color: #0f172a; font-size: 13px; display: block; line-height: 1.3;">${pin.title || pin.name}</strong>
+              <p style="font-size: 11px; color: #64748b; margin: 4px 0 8px 0;">📍 ${pin.location_name || pin.address} (${pin.district})</p>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span style="font-size: 10px; font-weight: bold; padding: 3px 6px; border-radius: 4px; background: #fee2e2; color: #991b1b;">
+                  ${pin.status === 'verified' ? 'Verified' : 'Community Report'}
+                </span>
+                <a href="https://maps.google.com/?q=${pin.latitude},${pin.longitude}" target="_blank" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #0f172a; color: white; text-decoration: none; font-weight: bold;">Route ↗</a>
+              </div>
+            </div>
+          `);
+          marker.on('click', () => {
+            setActiveItem(pin);
+            if (onSelectMarker) onSelectMarker(pin);
+          });
+          layer.addLayer(marker);
+        });
+
+      }, [hazards, safePlaces, mapFilter]);
+
+      return html`
+        <div class="relative w-full h-full">
+          <div ref=${containerRef} class="w-full h-full z-10" style=${{ display: lowBandwidth ? 'none' : 'block' }}></div>
+          
+          ${lowBandwidth && html`
+            <div class="w-full h-full bg-[#0F172A] relative flex flex-col justify-between p-5 text-white overflow-hidden">
+              <div class="relative z-20 flex items-center justify-between">
+                <span class="text-xs bg-slate-800 px-3 py-1 rounded-lg border border-slate-700 font-semibold text-slate-200">
+                  ⚡ Low-Bandwidth Topographical Mode Active
+                </span>
+                <span class="text-xs text-slate-400 font-mono">26.2°N, 92.9°E</span>
+              </div>
+
+              <!-- Interactive Pins Grid -->
+              <div class="relative z-20 flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3 py-4 overflow-y-auto">
+                ${[...hazards, ...safePlaces].slice(0, 6).map(pin => html`
+                  <div key=${pin.id} class="p-3 rounded-xl border border-slate-700 bg-slate-900/90 text-xs flex flex-col justify-between">
+                    <div>
+                      <span class="font-bold uppercase text-[10px] text-red-400">${pin.hazard_type || pin.place_type}</span>
+                      <h4 class="font-bold text-white text-sm line-clamp-1 mt-0.5">${pin.title || pin.name}</h4>
+                      <p class="text-slate-400 text-[11px] mt-1 line-clamp-2">${pin.description || pin.address}</p>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center text-[11px]">
+                      <span class="text-slate-400">📍 ${pin.district}</span>
+                      <a href="https://maps.google.com/?q=${pin.latitude},${pin.longitude}" target="_blank" class="text-red-400 font-bold">Route →</a>
+                    </div>
+                  </div>
+                `)}
+              </div>
+
+              <div class="relative z-20 pt-2 border-t border-slate-800 text-[11px] text-slate-400 flex items-center gap-3">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Floods
+                <span class="w-2.5 h-2.5 rounded-full bg-red-600 ml-2"></span> Landslides
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-2"></span> Shelters
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // --- MAIN AAPDALINK APPLICATION COMPONENT ---
+    function App() {
+      const [activePage, setActivePage] = useState('home');
+      const [lang, setLang] = useState('en');
+      const [alerts, setAlerts] = useState(INITIAL_ALERTS);
+      const [hazards, setHazards] = useState(INITIAL_HAZARDS);
+      const [safePlaces, setSafePlaces] = useState(INITIAL_SAFE_PLACES);
+      const [requests, setRequests] = useState(INITIAL_REQUESTS);
+      const [lowBandwidth, setLowBandwidth] = useState(false);
+      const [isHelplineOpen, setIsHelplineOpen] = useState(false);
+      const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+      const [isHazardModalOpen, setIsHazardModalOpen] = useState(false);
+      const [statusToast, setStatusToast] = useState(null);
+      const [goBagState, setGoBagState] = useState({});
+      const [mapFilter, setMapFilter] = useState('all');
+      const [isAudioSpeaking, setIsAudioSpeaking] = useState(false);
+
+      const t = (key) => TRANSLATIONS[lang]?.[key] || TRANSLATIONS['en']?.[key] || key;
+
+      const triggerToast = (msg, type = 'info') => {
+        setStatusToast({ msg, type });
+        setTimeout(() => setStatusToast(null), 4000);
+      };
+
+      const handleConfirmHazard = (id) => {
+        setHazards(prev => prev.map(h => h.id === id ? { ...h, confirmations_count: (h.confirmations_count || 0) + 1 } : h));
+        triggerToast('Thank you! Community confirmation recorded.', 'success');
+      };
+
+      const handleAudioToggle = () => {
+        if (isAudioSpeaking) {
+          stopSpeech();
+          setIsAudioSpeaking(false);
+        } else {
+          setIsAudioSpeaking(true);
+          speakText(t('audioAnnounceIntro'), lang, () => setIsAudioSpeaking(false));
+        }
+      };
+
+      return html`
+        <div class="min-h-screen flex flex-col bg-slate-100 text-slate-900 pb-16 md:pb-0 font-sans">
+          
+          <!-- Top Emergency Ticker & Demo Bar -->
+          <div class="bg-red-700 text-white px-4 py-2 text-xs sm:text-sm font-semibold flex items-center justify-between">
+            <div class="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 truncate">
+                <span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">OFFICIAL ASDMA WARNING</span>
+                <span class="truncate">${alerts[0]?.title}</span>
+              </div>
+
+              <!-- Audio Read Button for Alert -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick=${handleAudioToggle}
+                  class="px-2.5 py-1 rounded bg-black/30 hover:bg-black/50 text-white text-xs font-bold flex items-center gap-1 border border-white/30"
+                  title="Read aloud alert broadcast for visually impaired"
+                >
+                  <span>${isAudioSpeaking ? '⏹️' : '🔊'}</span>
+                  <span>${isAudioSpeaking ? t('stopAudio') : t('listenAlerts')}</span>
+                </button>
+                <span class="text-[10px] bg-black/25 px-2 py-0.5 rounded uppercase font-bold hidden sm:inline">${t('demoData')}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Navigation Header -->
+          <header class="sticky top-0 z-40 bg-[#0A1329] border-b border-slate-800 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
+              
+              <!-- Logo -->
+              <div 
+                onClick=${() => setActivePage('home')}
+                class="flex items-center gap-2.5 cursor-pointer flex-shrink-0"
+              >
+                <div class="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-emergency">
+                  A
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xl font-black">${t('appTitle')}</span>
+                    <span class="text-[10px] font-bold bg-blue-900 text-blue-200 px-1.5 py-0.2 rounded hidden sm:inline">${t('neRegion')}</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 leading-none">${t('appSubtitle')}</p>
+                </div>
+              </div>
+
+              <!-- Desktop Menu -->
+              <nav class="hidden md:flex items-center space-x-1 text-sm font-semibold">
+                ${['home', 'map', 'safeplaces', 'safety', 'admin'].map(page => html`
+                  <button
+                    key=${page}
+                    onClick=${() => setActivePage(page)}
+                    class="px-3 py-2 rounded-lg transition-colors capitalize ${activePage === page ? 'bg-slate-800 text-white' : 'text-slate-300 hover:text-white'}"
+                  >
+                    ${page === 'home' ? t('dashboard') : page === 'map' ? t('map') : page === 'safeplaces' ? t('safeplaces') : page === 'safety' ? t('safety') : t('admin')}
+                  </button>
+                `)}
+              </nav>
+
+              <!-- Action Bar (Language Switcher, Audio, Low-Data & SOS) -->
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                
+                <!-- Language Selector Dropdown -->
+                <select
+                  value=${lang}
+                  onChange=${(e) => setLang(e.target.value)}
+                  class="px-2 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 cursor-pointer focus:ring-2 focus:ring-red-500"
+                  aria-label="Select Language"
+                >
+                  ${LANGUAGES.map(l => html`
+                    <option key=${l.code} value=${l.code} class="bg-slate-900 text-white">
+                      🌐 ${l.native}
+                    </option>
+                  `)}
+                </select>
+
+                <!-- Voice Assist Audio Button -->
+                <button
+                  onClick=${handleAudioToggle}
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 border transition-all ${isAudioSpeaking ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}"
+                  title="Voice Assist for blind or low-literacy users"
+                >
+                  <span>${isAudioSpeaking ? '⏹️' : '🔊'}</span>
+                  <span class="hidden sm:inline">${isAudioSpeaking ? t('stopAudio') : t('voiceAssist')}</span>
+                </button>
+
+                <!-- Low-Bandwidth Mode Toggle -->
+                <button
+                  onClick=${() => setLowBandwidth(!lowBandwidth)}
+                  class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${lowBandwidth ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-800 text-slate-300 border-slate-700'}"
+                  title="Toggle low bandwidth mode"
+                >
+                  ${lowBandwidth ? '⚡ ' + t('lowDataOn') : t('lowDataOff')}
+                </button>
+
+                <!-- Direct Helplines Button -->
+                <button
+                  onClick=${() => setIsHelplineOpen(true)}
+                  class="hidden lg:flex px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                >
+                  📞 ${t('helplines')}
+                </button>
+
+                <!-- SOS Emergency Button -->
+                <button
+                  onClick=${() => setIsEmergencyModalOpen(true)}
+                  class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black bg-red-600 hover:bg-red-700 text-white shadow-emergency active:scale-95 flex items-center gap-1"
+                >
+                  <span>🚨</span>
+                  <span>${t('requestHelp')}</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <!-- Main Page Body -->
+          <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6">
+            
+            ${activePage === 'home' && html`
+              <div class="space-y-6">
+                <!-- Hero Section -->
+                <div class="bg-gradient-to-br from-[#0A1329] to-[#162B55] text-white p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-xl space-y-5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                    <span class="font-bold text-red-200">${t('monsoonWatch')}</span>
+                    <span class="bg-slate-800 text-slate-300 text-[10px] uppercase font-bold px-2 py-0.5 rounded">${t('demoData')}</span>
+                  </div>
+
+                  <h1 class="text-2xl sm:text-4xl font-black leading-tight">
+                    ${t('heroTitlePrefix')} <span class="text-red-500">${t('heroTitleHighlight')}</span> ${t('heroTitleSuffix')}
+                  </h1>
+                  <p class="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                    ${t('heroDesc')}
+                  </p>
+
+                  <div class="flex flex-wrap gap-3 pt-1">
+                    <button
+                      onClick=${() => setIsEmergencyModalOpen(true)}
+                      class="px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-sm shadow-emergency"
+                    >
+                      ${t('requestRescueBtn')}
+                    </button>
+                    <button
+                      onClick=${() => setIsHazardModalOpen(true)}
+                      class="px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700"
+                    >
+                      ${t('reportHazardBtn')}
+                    </button>
+                    <button
+                      onClick=${() => setActivePage('map')}
+                      class="px-5 py-3.5 rounded-xl bg-blue-900/60 hover:bg-blue-800 text-blue-200 font-semibold text-xs border border-blue-700"
+                    >
+                      ${t('openMapBtn')}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Official Advisories Card with Individual Audio Button -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                  <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-900 text-base">${t('officialAlertsTitle')}</h3>
+                    <span class="text-xs text-red-600 font-bold bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                      ${alerts.length} ${t('activeBulletins')}
+                    </span>
+                  </div>
+                  <div class="space-y-3">
+                    ${alerts.map(alt => html`
+                      <div key=${alt.id} class="p-4 rounded-xl border bg-red-50/60 border-red-200 space-y-2 text-xs sm:text-sm">
+                        <div class="flex items-center justify-between">
+                          <span class="font-bold uppercase tracking-wider text-[11px] text-red-700">🔴 ${alt.severity.toUpperCase().replace('_', ' ')}</span>
+                          
+                          <!-- Micro voice speaker for this alert -->
+                          <button
+                            onClick=${() => speakText(alt.title + '. ' + alt.description + '. Action: ' + alt.action_instructions, lang)}
+                            class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-800 border text-xs font-bold flex items-center gap-1"
+                            title="Listen to this specific alert aloud"
+                          >
+                            <span>🔊</span>
+                            <span>${t('listenAlerts')}</span>
+                          </button>
+                        </div>
+                        <h4 class="font-extrabold text-slate-900 text-sm sm:text-base">${alt.title}</h4>
+                        <p class="text-slate-700 leading-relaxed">${alt.description}</p>
+                        <div class="p-2.5 rounded-lg bg-white text-slate-800 font-medium border border-slate-200">
+                          <strong class="text-red-700">Action:</strong> ${alt.action_instructions}
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+
+                <!-- Interactive Map Section on Home -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 class="font-bold text-slate-900 text-base">North East Disaster Incident & Safe Haven Map</h3>
+                      <p class="text-xs text-slate-500">Live coordinates of floods, hill slides, and open relief camps</p>
+                    </div>
+                    <div class="flex gap-1.5 text-xs">
+                      ${['all', 'flood', 'landslide', 'shelter'].map(f => html`
+                        <button
+                          key=${f}
+                          onClick=${() => setMapFilter(f)}
+                          class="px-3 py-1.5 rounded-lg font-bold capitalize border ${mapFilter === f ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700'}"
+                        >
+                          ${t(f) || f}
+                        </button>
+                      `)}
+                    </div>
+                  </div>
+
+                  <div class="relative rounded-2xl overflow-hidden border border-slate-300 h-96 bg-slate-900">
+                    <${MapView}
+                      hazards=${hazards}
+                      safePlaces=${safePlaces}
+                      mapFilter=${mapFilter}
+                      lowBandwidth=${lowBandwidth}
+                    />
+                  </div>
+                </div>
+
+                <!-- Community Reports Feed -->
+                <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                  <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-900 text-base">${t('recentReportsTitle')}</h3>
+                    <button
+                      onClick=${() => setIsHazardModalOpen(true)}
+                      class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg"
+                    >
+                      ${t('reportHazardBtn')}
+                    </button>
+                  </div>
+                  <div class="space-y-3">
+                    ${hazards.map(haz => html`
+                      <div key=${haz.id} class="p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs sm:text-sm">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="font-mono font-bold text-slate-700 text-xs">${haz.report_code}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${haz.status === 'verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                              ${haz.status === 'verified' ? t('verifiedDEOC') : t('unverifiedReport')}
+                            </span>
+                          </div>
+                          <span class="text-slate-500 text-xs">${haz.district}, ${haz.state}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-900">${haz.title}</h4>
+                        <p class="text-slate-600">${haz.description}</p>
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                          <span class="text-slate-500">📍 ${haz.location_name}</span>
+                          <button
+                            onClick=${() => handleConfirmHazard(haz.id)}
+                            class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded font-semibold text-slate-700"
+                          >
+                            ${t('confirmHazardBtn')} (${haz.confirmations_count || 0})
+                          </button>
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+              </div>
+            `}
+
+            <!-- DEDICATED MAP TAB (FIXED & FULLY FUNCTIONAL) -->
+            ${activePage === 'map' && html`
+              <div class="space-y-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-lg sm:text-xl font-black text-slate-900">${t('map')}</h2>
+                    <p class="text-xs text-slate-500">Visualizing flood zones, landslides, roadblocks and hospitals</p>
+                  </div>
+                  <div class="flex gap-1.5 text-xs">
+                    ${['all', 'flood', 'landslide', 'shelter'].map(f => html`
+                      <button
+                        key=${f}
+                        onClick=${() => setMapFilter(f)}
+                        class="px-3 py-1.5 rounded-lg font-bold capitalize border ${mapFilter === f ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700'}"
+                      >
+                        ${t(f) || f}
+                      </button>
+                    `)}
+                  </div>
+                </div>
+
+                <!-- Dedicated Map Canvas with MapView Component -->
+                <div class="relative rounded-2xl overflow-hidden border border-slate-300 h-[560px] bg-slate-900 shadow-inner">
+                  <${MapView}
+                    hazards=${hazards}
+                    safePlaces=${safePlaces}
+                    mapFilter=${mapFilter}
+                    lowBandwidth=${lowBandwidth}
+                  />
+                </div>
+              </div>
+            `}
+
+            <!-- SAFE SHELTERS TAB -->
+            ${activePage === 'safeplaces' && html`
+              <div class="space-y-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-black text-slate-900">${t('safeSheltersTitle')}</h2>
+                    <p class="text-xs text-slate-500">Relief camps and medical trauma centers across North East India</p>
+                  </div>
+                  <button
+                    onClick=${() => speakText('Verified Safe Shelters and Hospitals list in North East India. Relief camps open with clean drinking water and medical aid.', lang)}
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1 border"
+                  >
+                    <span>🔊</span>
+                    <span>${t('listenAlerts')}</span>
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${safePlaces.map(sp => html`
+                    <div key=${sp.id} class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs sm:text-sm">
+                      <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded font-bold uppercase text-[10px] bg-emerald-100 text-emerald-800">
+                          ${sp.place_type.replace('_', ' ')}
+                        </span>
+                        <span class="font-bold text-slate-500 uppercase">${sp.district}</span>
+                      </div>
+                      <h3 class="font-bold text-base text-slate-900">${sp.name}</h3>
+                      <p class="text-slate-600">📍 ${sp.address}</p>
+                      <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                        <span>Capacity Occupancy:</span>
+                        <strong class="font-mono text-slate-900">${sp.current_occupancy} / ${sp.total_capacity} people</strong>
+                      </div>
+                      <div class="pt-2 flex items-center justify-between">
+                        <a href="tel:${sp.contact_phone}" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
+                          📞 ${t('callDesk')} (${sp.contact_phone})
+                        </a>
+                        <a href="https://maps.google.com/?q=${sp.latitude},${sp.longitude}" target="_blank" class="px-3 py-2 rounded-lg bg-slate-900 text-white font-semibold text-xs">
+                          ${t('routeDirections')} ↗
+                        </a>
+                      </div>
+                    </div>
+                  `)}
+                </div>
+              </div>
+            `}
+
+            <!-- SAFETY GUIDES TAB -->
+            ${activePage === 'safety' && html`
+              <div class="space-y-5">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-black text-slate-900">${t('safety')}</h2>
+                    <p class="text-xs text-slate-500">Preparedness guides for river floods, hill landslides, and emergency kit</p>
+                  </div>
+                  <button
+                    onClick=${() => speakText('Disaster Safety Rules. Never walk or drive across flooded roads. If hill cracks appear, evacuate immediately. Keep your emergency Go-Bag ready near exit.', lang)}
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1 border"
+                  >
+                    <span>🔊</span>
+                    <span>${t('voiceAssist')}</span>
+                  </button>
+                </div>
+
+                <!-- Go-Bag Interactive Tracker -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 class="font-bold text-base text-slate-900">🎒 ${t('goBagTitle')}</h3>
+                  <div class="space-y-2">
+                    ${GO_BAG_ITEMS.map(item => html`
+                      <div
+                        key=${item.id}
+                        onClick=${() => setGoBagState(p => ({ ...p, [item.id]: !p[item.id] }))}
+                        class="p-2.5 rounded-lg border cursor-pointer flex items-center gap-3 text-xs sm:text-sm ${goBagState[item.id] ? 'bg-emerald-50 border-emerald-300 line-through text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800'}"
+                      >
+                        <input type="checkbox" checked=${!!goBagState[item.id]} readOnly class="w-4 h-4 text-emerald-600" />
+                        <span>${item.text}</span>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+
+                <!-- Survival Guides Accordion -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4 text-xs sm:text-sm">
+                  <h3 class="font-bold text-base text-slate-900">🌊 Flood Safety Essentials</h3>
+                  <ul class="list-disc list-inside space-y-1.5 text-slate-700">
+                    <li>Never walk or drive across flooded roads. 6 inches of water can knock an adult off balance.</li>
+                    <li>Turn off main electrical breaker and LPG cylinder valves before water reaches ground level.</li>
+                    <li>Boil all drinking water for minimum 10 minutes or use 1 halogen chlorine tablet per 20 liters.</li>
+                    <li>Signal helicopters/boats from terrace using a bright cloth, torch, or whistle.</li>
+                  </ul>
+
+                  <h3 class="font-bold text-base text-slate-900 pt-3 border-t border-slate-200">⛰️ Landslide Warning Signs</h3>
+                  <ul class="list-disc list-inside space-y-1.5 text-slate-700">
+                    <li>Notice widening cracks on pavements, retaining walls, or house floors.</li>
+                    <li>Sudden muddy water runoff emerging from previously dry hill slopes.</li>
+                    <li>Listen for rumbling boulders or tree trunks snapping on steep highway cuttings.</li>
+                    <li>Evacuate perpendicular to the slide path, NEVER straight downhill.</li>
+                  </ul>
+                </div>
+              </div>
+            `}
+
+            <!-- ADMIN CONSOLE -->
+            ${activePage === 'admin' && html`
+              <div class="space-y-5">
+                <div class="bg-slate-900 text-white p-5 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-bold">Admin Operations & Triage Console</h2>
+                    <p class="text-xs text-slate-400">Manage incoming SOS requests, verify hazard reports, and broadcast alerts</p>
+                  </div>
+                  <span class="text-xs font-bold px-2.5 py-1 bg-red-600 text-white rounded-lg">DEOC ACTIVE</span>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                  <h3 class="font-bold text-slate-900 text-sm">Emergency Rescue Requests Queue</h3>
+                  <div class="space-y-3">
+                    ${requests.map(r => html`
+                      <div key=${r.id} class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs sm:text-sm">
+                        <div class="flex items-center justify-between">
+                          <span class="font-mono font-bold text-slate-900">${r.ticket_id}</span>
+                          <span class="px-2 py-0.5 rounded font-bold uppercase text-[10px] bg-red-100 text-red-800">${r.status}</span>
+                        </div>
+                        <p class="text-slate-800 font-medium">${r.description}</p>
+                        <p class="text-slate-500 text-xs">📍 ${r.location_details} (${r.district}) • Contact: <strong>${r.primary_contact}</strong></p>
+                        <div class="pt-2 flex gap-2">
+                          <button
+                            onClick=${() => {
+                              setRequests(p => p.map(item => item.id === r.id ? { ...item, status: 'dispatched' } : item));
+                              triggerToast('SDRF Unit Dispatched!', 'success');
+                            }}
+                            class="px-3 py-1 bg-blue-600 text-white rounded text-xs font-bold"
+                          >
+                            Dispatch SDRF
+                          </button>
+                          <button
+                            onClick=${() => {
+                              setRequests(p => p.map(item => item.id === r.id ? { ...item, status: 'resolved' } : item));
+                              triggerToast('Marked Rescued / Resolved', 'success');
+                            }}
+                            class="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-bold"
+                          >
+                            Mark Rescued
+                          </button>
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+              </div>
+            `}
+
+          </main>
+
+          <!-- Mobile Bottom Navigation Bar -->
+          <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 text-white">
+            <div class="grid grid-cols-5 items-center h-16 max-w-lg mx-auto text-[10px]">
+              <button onClick=${() => setActivePage('home')} class="flex flex-col items-center py-1 ${activePage === 'home' ? 'text-red-500 font-bold' : 'text-slate-400'}">
+                🏠<span>${t('dashboard')}</span>
+              </button>
+              <button onClick=${() => setActivePage('map')} class="flex flex-col items-center py-1 ${activePage === 'map' ? 'text-red-500 font-bold' : 'text-slate-400'}">
+                🗺️<span>${t('map')}</span>
+              </button>
+              <div class="flex flex-col items-center -mt-5">
+                <button
+                  onClick=${() => setIsEmergencyModalOpen(true)}
+                  class="w-13 h-13 p-3 rounded-full bg-red-600 text-white font-black text-xs shadow-emergency border-4 border-slate-900 active:scale-95"
+                >
+                  SOS
+                </button>
+              </div>
+              <button onClick=${() => setActivePage('safeplaces')} class="flex flex-col items-center py-1 ${activePage === 'safeplaces' ? 'text-red-500 font-bold' : 'text-slate-400'}">
+                🏕️<span>${t('safeplaces')}</span>
+              </button>
+              <button onClick=${() => setActivePage('safety')} class="flex flex-col items-center py-1 ${activePage === 'safety' ? 'text-red-500 font-bold' : 'text-slate-400'}">
+                🎒<span>${t('safety')}</span>
+              </button>
+            </div>
+          </nav>
+
+          <!-- Toast Notification -->
+          ${statusToast && html`
+            <div class="fixed bottom-20 md:bottom-6 right-4 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-bold border border-slate-700">
+              ${statusToast.msg}
+            </div>
+          `}
+
+          <!-- Helplines Drawer Modal -->
+          ${isHelplineOpen && html`
+            <div class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex justify-end" onClick=${() => setIsHelplineOpen(false)}>
+              <div class="w-full max-w-sm bg-white h-full p-5 space-y-4 flex flex-col" onClick=${e => e.stopPropagation()}>
+                <div class="flex items-center justify-between border-b pb-3">
+                  <h3 class="font-bold text-base text-slate-900">Emergency Helplines (24/7)</h3>
+                  <button onClick=${() => setIsHelplineOpen(false)} class="text-slate-400 p-1">✕</button>
+                </div>
+                <div class="p-3 bg-red-50 text-red-900 text-xs rounded-lg font-semibold">
+                  For immediate life emergency, call 112 directly. Free from any SIM.
+                </div>
+                <div class="space-y-2 flex-1 overflow-y-auto">
+                  ${EMERGENCY_NUMBERS.map(n => html`
+                    <a key=${n.number} href="tel:${n.number.replace(/[^0-9]/g, '')}" class="p-3 rounded-xl border border-slate-200 flex items-center justify-between hover:bg-slate-50">
+                      <div>
+                        <div class="font-bold text-xs text-slate-900">${n.label}</div>
+                        <div class="text-[10px] text-slate-500">${n.desc}</div>
+                      </div>
+                      <span class="font-mono font-bold text-red-600 text-sm">${n.number}</span>
+                    </a>
+                  `)}
+                </div>
+                <button onClick=${() => setIsHelplineOpen(false)} class="w-full py-2 bg-slate-100 font-bold text-xs rounded-lg">
+                  Close
+                </button>
+              </div>
+            </div>
+          `}
+
+          <!-- Emergency Help Form Modal -->
+          ${isEmergencyModalOpen && html`
+            <div class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3" onClick=${() => setIsEmergencyModalOpen(false)}>
+              <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick=${e => e.stopPropagation()}>
+                <div class="bg-red-700 text-white p-4 flex items-center justify-between">
+                  <h3 class="font-bold text-base">${t('requestRescueBtn')}</h3>
+                  <button onClick=${() => setIsEmergencyModalOpen(false)} class="text-red-200">✕</button>
+                </div>
+                <div class="p-3 bg-red-50 border-b border-red-200 text-xs text-red-950 flex items-center justify-between">
+                  <span><strong>Notice:</strong> Dial <strong>112</strong> immediately for critical life emergency.</span>
+                  <button
+                    type="button"
+                    onClick=${() => speakText('Emergency Rescue Assistance Form. Enter your name, contact phone number, district, and exact landmark. If in immediate life danger, call 112 directly.', lang)}
+                    class="px-2 py-0.5 rounded bg-red-100 text-red-800 font-bold text-xs"
+                  >
+                    🔊 Voice Help
+                  </button>
+                </div>
+                <form
+                  onSubmit=${e => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const newReq = {
+                      id: 'req-' + Date.now(),
+                      ticket_id: 'SOS-2026-' + Math.floor(1000 + Math.random() * 9000),
+                      category: form.category.value,
+                      urgency: form.urgency.value,
+                      state: form.state.value,
+                      district: form.district.value,
+                      location_details: form.location.value,
+                      primary_contact: form.phone.value,
+                      description: form.desc.value,
+                      people_count: parseInt(form.people.value) || 1,
+                      status: 'pending'
+                    };
+                    setRequests(prev => [newReq, ...prev]);
+                    setIsEmergencyModalOpen(false);
+                    triggerToast(`Emergency ticket ${newReq.ticket_id} registered. Keep phone charged!`, 'success');
+                    speakText(`Emergency ticket ${newReq.ticket_id} registered. Help has been queued.`, lang);
+                  }}
+                  class="p-5 space-y-3 overflow-y-auto text-xs sm:text-sm"
+                >
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">Category</label>
+                      <select name="category" class="w-full p-2 border rounded-lg bg-white">
+                        <option value="rescue">🚨 Water/Hill Rescue</option>
+                        <option value="medical">🏥 Urgent Medicine</option>
+                        <option value="food_water">🍞 Food & Clean Water</option>
+                        <option value="shelter">🏕️ Evacuation Shelter</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">Urgency</label>
+                      <select name="urgency" class="w-full p-2 border rounded-lg bg-white">
+                        <option value="immediate_rescue">CRITICAL (&lt; 2h)</option>
+                        <option value="urgent_12h">HIGH (&lt; 12h)</option>
+                        <option value="relief_24_48h">MEDIUM (24-48h)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">State</label>
+                      <select name="state" class="w-full p-2 border rounded-lg bg-white">
+                        ${NE_STATES.map(s => html`<option key=${s.name} value=${s.name}>${s.name}</option>`)}
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">District</label>
+                      <input name="district" placeholder="District name" defaultValue="Kamrup Metro" required class="w-full p-2 border rounded-lg" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Specific Landmark / House</label>
+                    <input name="location" placeholder="e.g. Near Rongpur Shani Mandir, Lane 4" required class="w-full p-2 border rounded-lg" />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">Primary Phone Number</label>
+                      <input name="phone" type="tel" placeholder="10-digit number" required class="w-full p-2 border rounded-lg font-mono" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">Total People</label>
+                      <input name="people" type="number" defaultValue="2" min="1" class="w-full p-2 border rounded-lg" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Situation Details</label>
+                    <textarea name="desc" rows="2" placeholder="Water height, stranded infants/elderly, battery status..." class="w-full p-2 border rounded-lg"></textarea>
+                  </div>
+
+                  <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onClick=${() => setIsEmergencyModalOpen(false)} class="px-4 py-2 border rounded-lg font-semibold">
+                      Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg shadow-emergency">
+                      SUBMIT SOS TICKET
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          `}
+
+          <!-- Hazard Report Modal -->
+          ${isHazardModalOpen && html`
+            <div class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3" onClick=${() => setIsHazardModalOpen(false)}>
+              <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick=${e => e.stopPropagation()}>
+                <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+                  <h3 class="font-bold text-base">${t('reportHazardBtn')}</h3>
+                  <button onClick=${() => setIsHazardModalOpen(false)} class="text-slate-400">✕</button>
+                </div>
+                <div class="p-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-950">
+                  Submitted reports appear immediately on community map marked as <strong>"${t('unverifiedReport')}"</strong>.
+                </div>
+                <form
+                  onSubmit=${e => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const newHaz = {
+                      id: 'haz-' + Date.now(),
+                      report_code: 'HZ-2026-' + Math.floor(1000 + Math.random() * 9000),
+                      hazard_type: form.type.value,
+                      title: form.title.value,
+                      description: form.desc.value,
+                      state: form.state.value,
+                      district: form.district.value,
+                      location_name: form.location.value,
+                      latitude: 26.1738 + (Math.random() - 0.5) * 0.5,
+                      longitude: 91.7820 + (Math.random() - 0.5) * 0.5,
+                      severity: 'high',
+                      status: 'unverified',
+                      confirmations_count: 0
+                    };
+                    setHazards(prev => [newHaz, ...prev]);
+                    setIsHazardModalOpen(false);
+                    triggerToast(`Hazard ${newHaz.report_code} submitted as Unverified.`, 'success');
+                  }}
+                  class="p-5 space-y-3 overflow-y-auto text-xs sm:text-sm"
+                >
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Hazard Category</label>
+                    <select name="type" class="w-full p-2 border rounded-lg bg-white">
+                      <option value="flood">🌊 River Flood / Embankment Breach</option>
+                      <option value="landslide">⛰️ Landslide / Rockfall</option>
+                      <option value="road_block">🚧 Highway / Road Obstruction</option>
+                      <option value="waterlogging">🌧️ Urban Flash Waterlogging</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Brief Title</label>
+                    <input name="title" placeholder="e.g. Sinking road near Dzüdza bridge Km 46" required class="w-full p-2 border rounded-lg" />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">State</label>
+                      <select name="state" class="w-full p-2 border rounded-lg bg-white">
+                        ${NE_STATES.map(s => html`<option key=${s.name} value=${s.name}>${s.name}</option>`)}
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-800 mb-1">District</label>
+                      <input name="district" placeholder="District name" defaultValue="Kohima" required class="w-full p-2 border rounded-lg" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Exact Location or Highway Milestone</label>
+                    <input name="location" placeholder="e.g. NH-29 near Petrol Pump" required class="w-full p-2 border rounded-lg" />
+                  </div>
+
+                  <div>
+                    <label class="block font-bold text-slate-800 mb-1">Observations</label>
+                    <textarea name="desc" rows="2" placeholder="Passability for 2-wheelers, water depth..." class="w-full p-2 border rounded-lg"></textarea>
+                  </div>
+
+                  <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onClick=${() => setIsHazardModalOpen(false)} class="px-4 py-2 border rounded-lg font-semibold">
+                      Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-orange-600 text-white font-bold rounded-lg shadow-sm">
+                      SUBMIT HAZARD REPORT
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          `}
+
+        </div>
+      `;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
