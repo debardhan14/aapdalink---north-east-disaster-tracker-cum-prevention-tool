@@ -5,6 +5,7 @@
   "type": "module",
   "description": "A modern, responsive, mobile-first disaster-response and community safety platform focused on North East India",
   "scripts": {
+    "start": "node server.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
